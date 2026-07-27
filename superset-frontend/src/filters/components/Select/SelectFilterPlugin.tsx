@@ -623,17 +623,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               <Select
               name={formData.nativeFilterId}
               allowClear={!isFullyLocked}
-              allowNewOptions={!searchAllOptions && creatable !== false}
-              allowSelectAll={!searchAllOptions}
+              allowNewOptions={!isFullyLocked && !searchAllOptions && creatable !== false}
+              allowSelectAll={!isFullyLocked && !searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
+              open={isFullyLocked ? false : undefined}
+              showArrow={!isFullyLocked}
               getPopupContainer={
                 showOverflow
                   ? () => (parentRef?.current as HTMLElement) || document.body
                   : (trigger: HTMLElement) =>
                       (trigger?.parentNode as HTMLElement) || document.body
               }
-              showSearch={showSearch}
+              showSearch={!isFullyLocked && showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
               onClear={() => onSearch('')}
