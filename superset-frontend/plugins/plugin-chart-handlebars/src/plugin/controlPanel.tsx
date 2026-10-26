@@ -19,6 +19,8 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
+  ControlPanelsContainerProps,
+  sections,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import { allColumnsControlSetItem } from './controls/columns';
@@ -65,6 +67,56 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [handlebarsTemplateControlSetItem],
         [styleControlSetItem],
+        [
+          {
+            name: 'show_drill_link',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show "View details" link'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Shows a link at the bottom of the chart that opens the drill-to-detail table.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'drill_link_label',
+            config: {
+              type: 'TextControl',
+              label: t('Link text'),
+              renderTrigger: true,
+              default: 'View Details →',
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_drill_link?.value),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('View Details pop-up'),
+      expanded: false,
+      controlSetRows: [
+        ...sections.drillDetailSection,
+        [
+          {
+            name: 'drill_detail_cell_configs',
+            config: {
+              type: 'CellDrillControl',
+              label: t('Cell drill-downs'),
+              renderTrigger: true,
+              default: [],
+              description: t(
+                'Per-column pop-up charts. Mark the cell in the template with {{drillCell this "COLUMN"}}; only configured columns are clickable.',
+              ),
+              shouldMapStateToProps: () => true,
+              mapStateToProps: ({ datasource }: any) => ({ datasource }),
+            },
+          },
+        ],
       ],
     },
   ],

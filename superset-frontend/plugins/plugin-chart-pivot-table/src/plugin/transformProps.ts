@@ -117,6 +117,10 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
+    seriesSelectorEnabled,
+    seriesSelectorColumn,
+    seriesSelectorLabel,
+    seriesSelectorStyle,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -195,5 +199,9 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    seriesSelectorEnabled,
+    seriesSelectorColumn,
+    seriesSelectorLabel,
+    seriesSelectorStyle,
   };
 }

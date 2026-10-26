@@ -43,6 +43,8 @@ import {
   xAxisLabelInterval,
   forceMaxInterval,
 } from '../../../controls';
+import { seriesSelectorSection } from '../../seriesSelectorControls';
+import { drillLinkSection } from '../../drillLinkControls';
 
 const {
   area,
@@ -58,6 +60,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.echartsTimeSeriesQueryWithXAxisSort,
+    seriesSelectorSection,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -136,6 +139,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['zoomable'],
+        ...drillLinkSection,
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo,  useEffect, useRef, useState } from 'react';
 import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
@@ -35,6 +35,13 @@ import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
+import SeriesSelectorBar from './SeriesSelectorBar';
+import {
+  getSeriesSelectorColumn,
+  getSeriesSelectorIndex,
+  getSeriesSelectorValue,
+  stripSelectorSuffix,
+} from './seriesSelector';
 
 const TIMER_DURATION = 300;
 
@@ -52,6 +59,7 @@ export default function EchartsTimeseries({
   onContextMenu,
   onLegendStateChanged,
   onFocusedSeries,
+  onDrillToDetail,
   xValueFormatter,
   xAxis,
   refs,
@@ -93,10 +101,74 @@ export default function EchartsTimeseries({
     return () => {
       window.removeEventListener('resize', updateHeight);
     };
-  }, [formData.showExtraControls]);
+  }, [formData.showExtraControls, formData.seriesSelectorEnabled]);
+  //}, [formData.showExtraControls]);
+  
+  const drillLinkRef = useRef<HTMLDivElement>(null);
+  const [, setDrillLinkHeight] = useState(0);
+  useEffect(() => {
+    const element = drillLinkRef.current;
+    if (!element) {
+      setDrillLinkHeight(0);
+      return;
+    }
+    const updateHeight = () => setDrillLinkHeight(element.offsetHeight || 0);
+    updateHeight();
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(updateHeight);
+      ro.observe(element);
+      return () => ro.disconnect();
+    }
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [formData.showDrillLink]);
+
+  //const showDrillLink = Boolean(onDrillToDetail && formData.showDrillLink);
+  console.log('DRILL DEBUG', {
+    hasHook: Boolean(onDrillToDetail),
+    camel: formData.showDrillLink,
+    snake: (formData as any).show_drill_link,
+  });
+  const showDrillLink = Boolean(
+    onDrillToDetail &&
+      (formData.showDrillLink ?? (formData as any).show_drill_link),
+  );  
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
+  const selectorColumn = getSeriesSelectorColumn(formData);
+  const selectorIndex = getSeriesSelectorIndex(groupby, selectorColumn);
+  const selectorActive = selectorIndex >= 0;
 
+  const getSelectorValue = useCallback(
+    (name: unknown) =>
+      getSeriesSelectorValue(String(name ?? ''), labelMap, groupby.length, selectorIndex),
+    [labelMap, groupby.length, selectorIndex],
+  );
+
+  const selectorOptions = useMemo(() => {
+    if (!selectorActive) return [] as string[];
+    const found = new Set<string>();
+    ((echartOptions.series as { name?: unknown }[]) ?? []).forEach(s => {
+      const v = getSelectorValue(s.name);
+      if (v !== undefined) found.add(v);
+    });
+    return Array.from(found).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
+  }, [selectorActive, echartOptions.series, getSelectorValue]);
+
+  const [selectorValue, setSelectorValue] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selectorOptions.length) return;
+    if (selectorValue === null || !selectorOptions.includes(selectorValue)) {
+      setSelectorValue(selectorOptions[0]);
+    }
+  }, [selectorOptions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const effectiveSelectorValue =
+    selectorActive && selectorOptions.length
+      ? (selectorValue ?? selectorOptions[0])
+      : null;
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
     let el = target;
     let model: ComponentModel | null = null;
@@ -266,7 +338,7 @@ export default function EchartsTimeseries({
           ...(eventParams.name ? [eventParams.name] : []),
           ...(labelMap[seriesName] ?? []),
         ];
-        const groupBy = ensureIsArray(formData.groupby);
+        const groupBy = ensureIsArray(groupby);
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
@@ -357,7 +429,39 @@ export default function EchartsTimeseries({
     },
   };
 
-  return (
+    const filteredEchartOptions = useMemo(() => {
+    if (effectiveSelectorValue === null) return echartOptions;
+    const allSeries = (echartOptions.series as { name?: unknown }[]) ?? [];
+    const kept = allSeries.filter(s => {
+      const v = getSelectorValue(s.name);
+      return v === undefined || v === effectiveSelectorValue;
+    });
+    const keptNames = new Set(kept.map(s => String(s.name ?? '')));
+    const legend = echartOptions.legend as Record<string, unknown> | undefined;
+    const legendData = Array.isArray(legend?.data)
+      ? (legend!.data as unknown[]).filter(item =>
+          keptNames.has(
+            String(
+              typeof item === 'object' && item !== null
+                ? (item as { name?: unknown }).name
+                : item,
+            ),
+          ),
+        )
+      : legend?.data;
+    return {
+      ...echartOptions,
+      series: kept,
+      legend: {
+        ...(legend ?? {}),
+        data: legendData,
+        formatter: (name: string) =>
+          stripSelectorSuffix(name, effectiveSelectorValue),
+      },
+    };
+  }, [echartOptions, effectiveSelectorValue, getSelectorValue]);
+
+  /*return (
     <>
       <div ref={extraControlRef}>
         <ExtraControls formData={formData} setControlValue={setControlValue} />
@@ -365,7 +469,7 @@ export default function EchartsTimeseries({
       <Echart
         ref={echartRef}
         refs={refs}
-        height={height - extraControlHeight}
+        height={height - extraControlHeight - drillLinkHeight}
         width={width}
         echartOptions={echartOptions}
         eventHandlers={eventHandlers}
@@ -374,5 +478,56 @@ export default function EchartsTimeseries({
         vizType={formData.vizType}
       />
     </>
+  );*/
+
+    return (
+    <div style={{ position: 'relative', height, width }}>
+      <div ref={extraControlRef}>
+        <ExtraControls formData={formData} setControlValue={setControlValue} />
+        {selectorActive && (
+          <SeriesSelectorBar
+            label={formData.seriesSelectorLabel}
+            selectorStyle={formData.seriesSelectorStyle}
+            options={selectorOptions}
+            value={effectiveSelectorValue}
+            onChange={setSelectorValue}
+          />
+        )}
+      </div>
+      <Echart
+        ref={echartRef}
+        refs={refs}
+        height={height - extraControlHeight}
+        width={width}
+        echartOptions={filteredEchartOptions}
+        eventHandlers={eventHandlers}
+        zrEventHandlers={zrEventHandlers}
+        selectedValues={selectedValues}
+        vizType={formData.vizType}
+      />
+      {showDrillLink && (
+        <div
+          ref={drillLinkRef}
+          style={{ position: 'absolute', right: 8, bottom: -2, zIndex: 5, textAlign: 'right' }}
+        >
+          <a
+            href="#"
+            onClick={e => {
+              e.preventDefault();
+              onDrillToDetail?.([]);
+            }}
+            style={{
+              color: '#2563eb',
+              fontSize: 11,
+              fontWeight: 400,
+              textDecoration: 'none',
+              lineHeight: 1,
+            }}
+          >
+            {formData.drillLinkLabel || 'View Details →'}
+          </a>
+        </div>
+      )}
+    </div>
   );
 }

@@ -25,12 +25,14 @@ import {
   getColumnLabel,
   getNumberFormatter,
   getTimeFormatter,
+  ensureIsArray,
 } from '@superset-ui/core';
 
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
   EventHandlers,
+  DrillByClickHandler
 } from '../types';
 import { formatSeriesName } from './series';
 
@@ -105,6 +107,54 @@ export const clickEventHandler =
     }
   };
 
+// Shared between the context-menu and the drill-by-on-click paths so both
+// produce identical filters for a clicked slice.
+const getDrillFilters =
+  (
+    groupby: QueryFormColumn[],
+    labelMap: Record<string, string[]>,
+    formData: QueryFormData,
+    coltypeMapping?: Record<string, number>,
+  ) =>
+  (name: string): BinaryQueryObjectFilterClause[] | undefined => {
+    const drillFilters: BinaryQueryObjectFilterClause[] = [];
+    if (groupby.length > 0) {
+      const values = labelMap[name];
+      if (!values) {
+        return undefined;
+      }
+      groupby.forEach((dimension, i) => {
+        drillFilters.push({
+          col: dimension,
+          op: '==',
+          val: values[i],
+          formattedVal: formatSeriesName(values[i], {
+            timeFormatter: getTimeFormatter(formData.dateFormat),
+            numberFormatter: getNumberFormatter(formData.numberFormat),
+            coltype: coltypeMapping?.[getColumnLabel(dimension)],
+          }),
+        });
+      });
+    }
+    return drillFilters;
+  };
+
+export const drillByClickEventHandler =
+  (
+    groupby: QueryFormColumn[],
+    labelMap: Record<string, string[]>,
+    formData: QueryFormData,
+    onDrillByClick: DrillByClickHandler,
+    coltypeMapping?: Record<string, number>,
+  ) =>
+  ({ name }: { name: string }) => {
+    const filters = getDrillFilters(groupby, labelMap, formData, coltypeMapping)(name);
+    if (!filters || filters.length === 0) {
+      return;
+    }
+    onDrillByClick({ filters, groupbyFieldName: 'groupby' });
+  };
+
 export const contextMenuEventHandler =
   (
     groupby: (BaseTransformedProps<any> &
@@ -121,24 +171,14 @@ export const contextMenuEventHandler =
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const drillFilters: BinaryQueryObjectFilterClause[] = [];
-      if (groupby.length > 0) {
-        const values = labelMap[e.name];
-        if (!values) {
-          return;
-        }
-        groupby.forEach((dimension, i) => {
-          drillFilters.push({
-            col: dimension,
-            op: '==',
-            val: values[i],
-            formattedVal: formatSeriesName(values[i], {
-              timeFormatter: getTimeFormatter(formData.dateFormat),
-              numberFormatter: getNumberFormatter(formData.numberFormat),
-              coltype: coltypeMapping?.[getColumnLabel(dimension)],
-            }),
-          });
-        });
+      const drillFilters = getDrillFilters(
+        groupby,
+        labelMap,
+        formData,
+        coltypeMapping,
+      )(e.name);
+      if (!drillFilters) {
+        return;
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
@@ -155,6 +195,7 @@ export const allEventHandlers = (
   const {
     groupby,
     onContextMenu,
+    onDrillByClick,
     setDataMask,
     labelMap,
     emitCrossFilters,
@@ -162,16 +203,30 @@ export const allEventHandlers = (
     coltypeMapping,
     formData,
   } = transformedProps;
+  const drillByHierarchy = ensureIsArray(
+    (formData as { drillByHierarchy?: unknown }).drillByHierarchy,
+  );
+  const useDrillByClick =
+    groupby.length > 0 && drillByHierarchy.length > 0 && !!onDrillByClick;
   const eventHandlers: EventHandlers = {
-    click:
-      groupby.length > 0
+   click: useDrillByClick
+      ? drillByClickEventHandler(
+          groupby,
+          labelMap,
+          formData,
+          onDrillByClick!,
+          coltypeMapping,
+        )
+      : groupby.length > 0
         ? clickEventHandler(
             getCrossFilterDataMask(selectedValues, groupby, labelMap),
             setDataMask,
             emitCrossFilters,
           )
         : () => {},
-    contextmenu: contextMenuEventHandler(
+    contextmenu: useDrillByClick
+     ? (e: Event) => e.event.stop()
+     : contextMenuEventHandler(
       groupby,
       onContextMenu,
       labelMap,

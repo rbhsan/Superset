@@ -54,6 +54,10 @@ type Hooks = {
   onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
   /** handle right click */
   onContextMenu?: HandlerFunction;
+  /** drill-by on click: chart asks host to open Drill by directly */
+  onDrillByClick?: HandlerFunction;
+  /** cell drill-down: chart asks the host to open a configured pop-up */
+  onCellDrill?: HandlerFunction;
   /** handle errors */
   onError?: HandlerFunction;
   /** handle legend state changes */

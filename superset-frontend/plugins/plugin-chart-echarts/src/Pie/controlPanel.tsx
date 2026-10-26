@@ -30,7 +30,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
-import { legendSection } from '../controls';
+import { legendSection, drillDetailSection } from '../controls';
 
 const {
   donut,
@@ -70,6 +70,33 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        [
+          {
+            name: 'drill_by_hierarchy',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              freeForm: false,
+              label: t('Drill-by hierarchy'),
+              renderTrigger: true,
+              default: [],
+              description: t(
+                'Dashboards only. Pick columns in drill order (e.g. zone, circle, ' +
+                  'division). A normal click then opens Drill by directly using the ' +
+                  'first unused column, and the pop-up lets users switch columns. ' +
+                  'Leave empty to disable.',
+              ),
+              shouldMapStateToProps: () => true,
+              mapStateToProps: ({ datasource }) => ({
+                choices: (datasource?.columns ?? []).map((col: any) => [
+                  col.column_name,
+                  col.verbose_name || col.column_name,
+                ]),
+              }),
+            },
+          },
+        ],
+        ...drillDetailSection,
         [
           {
             name: 'show_labels_threshold',

@@ -43,7 +43,6 @@ import {
   COLOR_SATURATION,
   BORDER_WIDTH,
   GAP_WIDTH,
-  LABEL_FONTSIZE,
   extractTreePathInfo,
 } from './constants';
 import { OpacityEnum } from '../constants';

@@ -104,6 +104,11 @@ export type LegendFormData = {
 
 export type EventHandlers = Record<string, { (props: any): void }>;
 
+/** Dashboard-only hook: a plain click asks the host to open Drill by directly. */
+export type DrillByClickHandler = (
+  drillBy: Required<ContextMenuFilters>['drillBy'],
+) => void;
+
 export enum LabelPositionEnum {
   Top = 'top',
   Left = 'left',
@@ -142,6 +147,7 @@ export interface BaseTransformedProps<F> {
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
   onLegendScroll?: (currentIndex: number) => void;
+  onDrillByClick?: DrillByClickHandler;
 }
 
 export type CrossFilterTransformedProps = {
@@ -160,6 +166,7 @@ export type ContextMenuTransformedProps = {
     filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
+  onDrillByClick?: DrillByClickHandler;
 };
 
 export interface TitleFormData {

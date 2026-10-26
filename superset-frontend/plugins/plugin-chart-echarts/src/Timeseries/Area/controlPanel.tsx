@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { seriesSelectorSection } from '../seriesSelectorControls';
+import { drillLinkSection } from '../drillLinkControls';
 import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
@@ -59,6 +61,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.echartsTimeSeriesQueryWithXAxisSort,
+    seriesSelectorSection,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -172,6 +175,7 @@ const config: ControlPanelConfig = {
         ],
         [minorTicks],
         ['zoomable'],
+        ...drillLinkSection,
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [

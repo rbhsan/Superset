@@ -62,6 +62,7 @@ import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import JSEditorControl from './JSEditorControl';
 import SwitchControl from './SwitchControl';
 import VerticalRadioControl from './VerticalRadioControl';
+import CellDrillControl from './CellDrillControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -103,6 +104,7 @@ const controlMap = {
   MetricsControl,
   AdhocFilterControl,
   ConditionalFormattingControl,
+  CellDrillControl,
   XAxisSortControl,
   ContourControl,
   ComparisonRangeLabel,

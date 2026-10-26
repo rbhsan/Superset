@@ -43,8 +43,8 @@ import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { TruncatedMenuLabel } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
-const DRILL_TO_DETAIL = t('Drill to detail');
-const DRILL_TO_DETAIL_BY = t('Drill to detail by');
+const DRILL_TO_DETAIL = t('View Details');
+const DRILL_TO_DETAIL_BY = t('View Details for');
 const DISABLED_REASONS = {
   DATABASE: t(
     'Drill to detail is disabled for this database. Change the database settings to enable it.',

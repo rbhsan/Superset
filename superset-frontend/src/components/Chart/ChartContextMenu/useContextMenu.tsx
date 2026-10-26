@@ -44,6 +44,13 @@ export const useContextMenu = (
     contextMenuRef.current?.open(offsetX, offsetY, filters);
     setInContextMenu(true);
   };
+  
+  const onDrillByClick = useCallback(
+    (drillBy: Required<ContextMenuFilters>['drillBy']) => {
+      contextMenuRef.current?.openDrillBy(drillBy);
+    },
+    [],
+  );
 
   const handleContextMenuSelected = useCallback(
     (...args: any) => {
@@ -78,5 +85,5 @@ export const useContextMenu = (
       handleContextMenuSelected,
     ],
   );
-  return { contextMenu, inContextMenu, onContextMenu };
+  return { contextMenu, inContextMenu, onContextMenu, onDrillByClick };
 };

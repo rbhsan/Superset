@@ -96,6 +96,22 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.y_axis_format,
               label: t('Bubble size number format'),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.showSizeInTooltip?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'showSizeInTooltip',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show bubble size in tooltip'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Include the bubble size metric as a row in the tooltip.',
+              ),
             },
           },
         ],

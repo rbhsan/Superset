@@ -25,18 +25,37 @@ import {
   QueryFormOrderBy,
 } from '@superset-ui/core';
 import { PivotTableQueryFormData } from '../types';
+import {
+  getSeriesSelectorColumn,
+  appendSelectorColumn,
+} from '../seriesSelector';
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
+  console.log('SELECTOR DEBUG', {
+    enabled: (formData as any).series_selector_enabled,
+    col: (formData as any).series_selector_column,
+  });
   const { groupbyColumns = [], groupbyRows = [], extra_form_data } = formData;
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
 
   // TODO: add deduping of AdhocColumns
-  const columns = Array.from(
-    new Set([
-      ...ensureIsArray<QueryFormColumn>(groupbyColumns),
-      ...ensureIsArray<QueryFormColumn>(groupbyRows),
-    ]),
+ // const columns = Array.from(
+  //  new Set([
+  //    ...ensureIsArray<QueryFormColumn>(groupbyColumns),
+  //    ...ensureIsArray<QueryFormColumn>(groupbyRows),
+  //  ]),
+  //).map(col => {
+  const selectorColumn = getSeriesSelectorColumn(formData);
+
+  const columns = appendSelectorColumn(
+    Array.from(
+      new Set([
+        ...ensureIsArray<QueryFormColumn>(groupbyColumns),
+        ...ensureIsArray<QueryFormColumn>(groupbyRows),
+      ]),
+    ),
+    selectorColumn,
   ).map(col => {
     if (
       isPhysicalColumn(col) &&

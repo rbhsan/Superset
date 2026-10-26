@@ -19,13 +19,17 @@
 import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, hooks } = chartProps;
   const data = queriesData[0].data as TimeseriesDataRecord[];
+  const { onContextMenu, onDrillToDetail, onCellDrill } = hooks as any;
 
   return {
     width,
     height,
     data,
     formData,
+    onContextMenu, 
+    onDrillToDetail,
+    onCellDrill
   };
 }

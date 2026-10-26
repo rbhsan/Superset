@@ -54,12 +54,17 @@ const EXPORT_PAGE_SIZE = 500;
 
 export default function DrillDetailPane({
   formData,
-  initialFilters,
+  filters,
+  setFilters,
+  showChips = true,
   dataset,
   chartName,
 }: {
   formData: QueryFormData;
-  initialFilters: BinaryQueryObjectFilterClause[];
+  filters: BinaryQueryObjectFilterClause[];
+  setFilters?: (filters: BinaryQueryObjectFilterClause[]) => void;
+  /** false when the modal's filter bar owns the chips */
+  showChips?: boolean;
   dataset?: Dataset;
   chartName?: string;
 }) {
@@ -68,7 +73,6 @@ export default function DrillDetailPane({
   // Cached previous page index so we can keep rendering the prior page's
   // data while a new page is being fetched (avoids a "blank" frame).
   const lastPageIndex = useRef(pageIndex);
-  const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
@@ -517,8 +521,8 @@ export default function DrillDetailPane({
       {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
-          filters={filters}
-          setFilters={setFilters}
+          filters={showChips ? filters : []}
+          setFilters={showChips && setFilters ? setFilters : () => {}}
           totalCount={resultsPage?.total}
           loading={isLoading}
           onReload={handleReload}

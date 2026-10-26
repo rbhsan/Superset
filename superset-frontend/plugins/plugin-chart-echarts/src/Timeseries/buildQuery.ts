@@ -40,8 +40,11 @@ import {
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
 
-export default function buildQuery(formData: QueryFormData) {
-  const { groupby } = formData;
+import { getEffectiveGroupby } from './seriesSelector';  
+
+export default function buildQuery(rawFormData: QueryFormData) {
+  const groupby = getEffectiveGroupby(rawFormData);
+  const formData: QueryFormData = { ...rawFormData, groupby };
   return buildQueryContext(formData, baseQueryObject => {
     /* the `pivotOperatorInRuntime` determines how to pivot the dataframe returned from the raw query.
        1. If it's a time compared query, there will return a pivoted dataframe that append time compared metrics. for instance:

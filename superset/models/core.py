@@ -491,8 +491,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         extra = self.get_extra(source)
         engine_kwargs = extra.get("engine_params", {})
-        if nullpool:
-            engine_kwargs["poolclass"] = NullPool
+#        if nullpool:
+#            engine_kwargs["poolclass"] = NullPool
         connect_args = engine_kwargs.setdefault("connect_args", {})
 
         # modify URL/args for a specific catalog/schema

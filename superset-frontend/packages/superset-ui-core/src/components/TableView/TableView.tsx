@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useEffect, useRef, useMemo, useCallback } from 'react';
-import { isEqual } from 'lodash';
+// import { isEqual } from 'lodash';
 import { styled } from '@apache-superset/core/theme';
 import { useFilters, usePagination, useSortBy, useTable, SortingRule } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
@@ -143,7 +143,7 @@ const RawTableView = ({
     prepareRow,
     gotoPage,
     setSortBy,
-    state: { pageIndex, sortBy },
+    state: { pageIndex },
   } = useTable(
     {
       columns,

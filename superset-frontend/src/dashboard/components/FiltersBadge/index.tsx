@@ -57,6 +57,9 @@ export interface FiltersBadgeProps {
 
 const StyledFilterCount = styled.div`
   ${({ theme }) => `
+    appearance: none;
+    border: none;
+    font: inherit;
     display: flex;
     justify-items: center;
     align-items: center;
@@ -64,7 +67,7 @@ const StyledFilterCount = styled.div`
     margin-right: ${theme.sizeUnit}px;
     padding-left: ${theme.sizeUnit * 2}px;
     padding-right: ${theme.sizeUnit * 2}px;
-    background: ${theme.colorBgContainer};
+    background: transparent;
     border-radius: 4px;
     height: 100%;
     .anticon {
@@ -84,10 +87,31 @@ const StyledFilterCount = styled.div`
   `}
 `;
 
+//margin-left: ${theme.sizeUnit * 2}px;
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.sizeUnit * 2}px;
+    margin-left: 0;
   `}
+`;
+
+const IconWithBadge = styled.span`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  .applied-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50% , -50%);
+    margin-left: 0;
+  }
+ 
+  .applied-count .ant-badge-count, .applied-count .ant-scroll-number-only-unit {
+    background: #000000;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+    color: #ffffff !important;
+  }
 `;
 
 const sortByStatus = (indicators: Indicator[]): Indicator[] => {
@@ -328,6 +352,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
+       <IconWithBadge>
         <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
@@ -336,6 +361,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           size="small"
           showZero
         />
+       </IconWithBadge>
       </StyledFilterCount>
     </DetailsPanelPopover>
   );

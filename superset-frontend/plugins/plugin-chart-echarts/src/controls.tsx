@@ -27,6 +27,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   SORT_SERIES_CHOICES,
   sharedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -469,3 +470,5 @@ export const showExtraControls: CustomControlItem = {
     default: false,
   },
 };
+
+export const drillDetailSection = sections.drillDetailSection;

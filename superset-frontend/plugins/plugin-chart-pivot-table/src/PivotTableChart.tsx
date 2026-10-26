@@ -18,9 +18,11 @@
  */
 import {
   useCallback,
+  useState,
   useMemo,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
+import SeriesSelectorBar from './SeriesSelectorBar';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -257,10 +259,45 @@ export default function PivotTableChart(props: PivotTableProps) {
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    seriesSelectorEnabled,
+    seriesSelectorColumn,
+    seriesSelectorLabel,
+    seriesSelectorStyle,
   } = props;
 
   const theme = useTheme();
+  
+  const selectorCol = useMemo(
+    () => (seriesSelectorColumn ? getColumnLabel(seriesSelectorColumn) : null),
+    [seriesSelectorColumn],
+  );
 
+  const selectorOptions = useMemo(() => {
+    if (!seriesSelectorEnabled || !selectorCol) return [];
+    return Array.from(
+      new Set(
+        data
+          .map(row => row[selectorCol])
+          .filter(v => v !== null && v !== undefined)
+          .map(v => String(v)),
+      ),
+    ).sort();
+  }, [data, seriesSelectorEnabled, selectorCol]);
+
+  const [selectorValue, setSelectorValue] = useState<string | null>(null);
+  const selectorActive = seriesSelectorEnabled && selectorOptions.length > 0;
+  const effectiveSelectorValue =
+    selectorValue && selectorOptions.includes(selectorValue)
+      ? selectorValue
+      : (selectorOptions[0] ?? null);
+
+  const filteredData = useMemo(() => {
+    if (!selectorActive || !selectorCol || !effectiveSelectorValue) return data;
+    return data.filter(
+      row => String(row[selectorCol]) === effectiveSelectorValue,
+    );
+  }, [data, selectorActive, selectorCol, effectiveSelectorValue]);
+  
   // Base formatter without currency-awareness (for non-AUTO mode or as fallback)
   const baseFormatter = useMemo(
     () =>
@@ -341,7 +378,7 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const unpivotedData = useMemo(
     () =>
-      data.reduce(
+      filteredData.reduce(
         (acc: Record<string, any>[], record: Record<string, any>) => [
           ...acc,
           ...metricNames
@@ -356,7 +393,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         ],
         [],
       ),
-    [data, metricNames, currencyCodeColumn],
+    [filteredData, metricNames, currencyCodeColumn],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),
@@ -375,9 +412,14 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   const [rows, cols] = useMemo(() => {
+    const stripSelector = (list: string[]) =>
+      selectorActive && selectorCol
+        ? list.filter(c => c !== selectorCol)
+        : list;
+
     let [rows_, cols_] = transposePivot
-      ? [groupbyColumns, groupbyRows]
-      : [groupbyRows, groupbyColumns];
+      ? [stripSelector(groupbyColumns), stripSelector(groupbyRows)]
+      : [stripSelector(groupbyRows), stripSelector(groupbyColumns)];
 
     if (metricsLayout === MetricsLayoutEnum.ROWS) {
       rows_ = combineMetric ? [...rows_, METRIC_KEY] : [METRIC_KEY, ...rows_];
@@ -391,6 +433,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     groupbyRows,
     metricsLayout,
     transposePivot,
+    selectorActive, selectorCol
   ]);
 
   const handleChange = useCallback(
@@ -671,6 +714,15 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   return (
     <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
+      {selectorActive && (
+        <SeriesSelectorBar
+          label={seriesSelectorLabel}
+          selectorStyle={seriesSelectorStyle}
+          options={selectorOptions}
+          value={effectiveSelectorValue}
+          onChange={setSelectorValue}
+        />
+      )}
       <PivotTableWrapper>
         <PivotTable
           data={unpivotedData}

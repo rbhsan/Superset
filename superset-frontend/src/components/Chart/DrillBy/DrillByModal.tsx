@@ -39,6 +39,7 @@ import {
   Loading,
   Breadcrumb,
   Flex,
+  Select,
 } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -63,6 +64,7 @@ import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
+import { getDrillByHierarchy, orderByHierarchy } from './drillByHierarchy';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
@@ -421,8 +423,66 @@ export default function DrillByModal({
     }),
     [usedGroupbyColumns],
   );
+  
+  // ---- Drill-by column dropdown (edits the last level) ----
+  const drillByHierarchy = useMemo(
+    () => getDrillByHierarchy(formData),
+    [formData],
+  );
 
-  const { contextMenu, inContextMenu, onContextMenu } = useContextMenu(
+  const columnOptions = useMemo(() => {
+    const usedElsewhere = new Set(
+      usedGroupbyColumns
+        .filter(col => col.column_name !== currentColumn?.column_name)
+        .map(col => col.column_name),
+    );
+    return orderByHierarchy(
+      ensureIsArray(dataset.drillable_columns),
+      drillByHierarchy,
+    )
+      .filter(col => !usedElsewhere.has(col.column_name))
+      .map(col => ({
+        value: col.column_name,
+        label: col.verbose_name || col.column_name,
+      }));
+  }, [
+    dataset.drillable_columns,
+    drillByHierarchy,
+    usedGroupbyColumns,
+    currentColumn?.column_name,
+  ]);
+
+  const handleColumnChange = useCallback(
+    (columnName: string) => {
+      const newColumn = ensureIsArray(dataset.drillable_columns).find(
+        col => col.column_name === columnName,
+      );
+      if (!newColumn || newColumn.column_name === currentColumn?.column_name) {
+        return;
+      }
+      setDrillByConfigs(prev =>
+        prev.length
+          ? [...prev.slice(0, -1), { ...prev[prev.length - 1], column: newColumn }]
+          : prev,
+      );
+      setBreadcrumbsData(prev => [
+        ...prev.slice(0, -1),
+        { groupby: newColumn },
+      ]);
+      setUsedGroupbyColumns(prev => {
+        const idx = prev.findIndex(
+          col => col.column_name === currentColumn?.column_name,
+        );
+        if (idx < 0) return [...prev, newColumn];
+        const next = [...prev];
+        next[idx] = newColumn;
+        return next;
+      });
+    },
+    [dataset.drillable_columns, currentColumn?.column_name],
+  );
+
+  const { contextMenu, inContextMenu, onContextMenu, onDrillByClick } = useContextMenu(
     0,
     currentFormData,
     onSelection,
@@ -504,33 +564,64 @@ export default function DrillByModal({
         `}
       >
         {metadataBar}
-        <Breadcrumb
+        <Flex
+          justify="space-between"
+          align="center"
+          wrap
+          gap={theme.sizeUnit * 2}
           css={css`
             margin-bottom: ${theme.sizeUnit * 2}px;
           `}
-          items={breadcrumbItems}
-          itemRender={(route, _, routes, paths) => {
-            const isLastElement = routes.indexOf(route) === routes.length - 1;
-            return isLastElement ? (
-              <span data-test="drill-by-breadcrumb-item">
-                {route.title}
-                {paths}
-              </span>
-            ) : (
+        >
+          <Breadcrumb
+            items={breadcrumbItems}
+            itemRender={(route, _, routes, paths) => {
+              const isLastElement =
+                routes.indexOf(route) === routes.length - 1;
+              return isLastElement ? (
+                <span data-test="drill-by-breadcrumb-item">
+                  {route.title}
+                  {paths}
+                </span>
+              ) : (
+                <span
+                  data-test="drill-by-breadcrumb-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={route.onClick}
+                  css={css`
+                    cursor: pointer;
+                  `}
+                >
+                  {route.title}
+                </span>
+              );
+            }}
+          />
+          {columnOptions.length > 0 && (
+            <Flex align="center" gap={theme.sizeUnit}>
               <span
-                data-test="drill-by-breadcrumb-item"
-                role="button"
-                tabIndex={0}
-                onClick={route.onClick}
                 css={css`
-                  cursor: pointer;
+                  color: ${theme.colorTextSecondary};
+                  font-size: ${theme.fontSizeSM}px;
                 `}
               >
-                {route.title}
+                {t('Drill by')}
               </span>
-            );
-          }}
-        />
+              <Select
+                ariaLabel={t('Drill by column')}
+                data-test="drill-by-column-select"
+                value={currentColumn?.column_name}
+                options={columnOptions}
+                onChange={value => handleColumnChange(value as string)}
+                showSearch
+                css={css`
+                  min-width: ${theme.sizeUnit * 45}px;
+                `}
+              />
+            </Flex>
+          )}
+        </Flex>
         {displayModeToggle}
         {isChartDataLoading && <Loading />}
         {!isChartDataLoading && !chartDataResult && (
@@ -546,6 +637,7 @@ export default function DrillByModal({
             result={chartDataResult}
             onContextMenu={onContextMenu}
             inContextMenu={inContextMenu}
+            onDrillByClick={onDrillByClick}
             key={`drill-by-chart-${chartDataResult.length}-${drilledFormData.slice_id}`}
           />
         )}

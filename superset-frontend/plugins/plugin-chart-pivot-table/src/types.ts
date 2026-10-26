@@ -89,7 +89,11 @@ interface PivotTableCustomizeProps {
   timeGrainSqla?: TimeGranularity;
   time_grain_sqla?: TimeGranularity;
   granularity_sqla?: string;
-  allowRenderHtml?: boolean;
+  allowRenderHtml?: boolean; 
+  seriesSelectorEnabled?: boolean;
+  seriesSelectorColumn?: QueryFormColumn;
+  seriesSelectorLabel?: string;
+  seriesSelectorStyle?: 'dropdown' | 'tabs';
 }
 
 export type PivotTableQueryFormData = QueryFormData &

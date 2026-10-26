@@ -21,10 +21,12 @@ import {
   AnnotationLayer,
   AxisType,
   ContributionType,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   TimeFormatter,
   TimeGranularity,
+  BinaryQueryObjectFilterClause
 } from '@superset-ui/core';
 import {
   BaseChartProps,
@@ -101,6 +103,12 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   percentageThreshold: number;
   colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
+  seriesSelectorEnabled?: boolean;
+  seriesSelectorColumn?: QueryFormColumn;
+  seriesSelectorLabel?: string;
+  seriesSelectorStyle?: 'dropdown' | 'tabs';
+  showDrillLink?: boolean;
+  drillLinkLabel?: string;
 } & LegendFormData &
   TitleFormData;
 
@@ -120,4 +128,5 @@ export type TimeseriesChartTransformedProps =
         type: AxisType;
       };
       onFocusedSeries: (series: string | null) => void;
+      onDrillToDetail?: (filters?: BinaryQueryObjectFilterClause[]) => void;
     };

@@ -45,6 +45,7 @@ export type EchartsBubbleFormData = QueryFormData &
     tooltipFormat: string;
     x: string;
     y: string;
+    showSizeInTooltip?: boolean;
   };
 
 export interface EchartsBubbleChartProps extends ChartProps<EchartsBubbleFormData> {

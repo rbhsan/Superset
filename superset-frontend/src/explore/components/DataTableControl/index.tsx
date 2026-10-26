@@ -253,7 +253,7 @@ export const useFilteredTableData = (
   }, [data, filterText, rowsAsStrings]);
 };
 
-const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
+const timeFormatter = getTimeFormatter('%d-%m-%Y %H:%M:%S');
 
 export const useTableColumns = (
   colnames?: string[],

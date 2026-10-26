@@ -36,6 +36,7 @@ interface DrillByChartProps {
     filters: ContextMenuFilters,
   ) => void;
   inContextMenu: boolean;
+  onDrillByClick?: (drillBy: Required<ContextMenuFilters>['drillBy']) => void;
 }
 
 export default function DrillByChart({
@@ -44,8 +45,9 @@ export default function DrillByChart({
   dataset,
   onContextMenu,
   inContextMenu,
+  onDrillByClick,
 }: DrillByChartProps) {
-  const hooks = useMemo(() => ({ onContextMenu }), [onContextMenu]);
+  const hooks = useMemo(() => ({ onContextMenu, onDrillByClick }), [onContextMenu, onDrillByClick]);
   
 //  const containerRef = useRef<HTMLDivElement>(null);
 //  useEffect(() => {

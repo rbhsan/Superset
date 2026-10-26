@@ -20,6 +20,7 @@ import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import { createRef, Component, RefObject, MouseEvent, ReactNode } from 'react';
 import {
   SuperChart,
+  ensureIsArray,
   Behavior,
   getChartMetadataRegistry,
   VizType,
@@ -32,8 +33,9 @@ import {
   JsonObject,
   LatestQueryFormData,
   AgGridChartState,
+  BinaryQueryObjectFilterClause,
   ContextMenuFilters,
-  DataRecordFilters,
+  DataRecordFilters
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -45,6 +47,7 @@ import type { Dispatch } from 'redux';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
+import CellDrillModal from './DrillDetail/CellDrillModal';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -140,9 +143,14 @@ export interface ChartRendererProps {
 // State interface
 interface ChartRendererState {
   showContextMenu: boolean;
+  allowDrillToDetail: boolean;
   inContextMenu: boolean;
   legendState: LegendState | undefined;
   legendIndex: number;
+  cellDrill?: {
+    filters: BinaryQueryObjectFilterClause[];
+    column: string;
+  } | null;
 }
 
 // Hooks interface
@@ -158,6 +166,8 @@ interface ChartHooks {
     offsetY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  onDrillToDetail?: (filters?: BinaryQueryObjectFilterClause[]) => void;
+  onDrillByClick?: (drillBy: Required<ContextMenuFilters>['drillBy']) => void;
   onError: (error: Error, info: { componentStack: string } | null) => void;
   setControlValue: (name: string, value: unknown) => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
@@ -166,6 +176,11 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  onDrillByClick?: (drillBy: Required<ContextMenuFilters>['drillBy']) => void;
+    onCellDrill?: (
+    filters: BinaryQueryObjectFilterClause[],
+    column: string,
+  ) => void;
 }
 
 const BLANK = {};
@@ -207,6 +222,9 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
         props.source === ChartSource.Dashboard &&
         !suppressContextMenu &&
         isFeatureEnabled(FeatureFlag.DrillToDetail),
+      allowDrillToDetail:
+        props.source === ChartSource.Dashboard &&
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
       legendIndex: 0,
@@ -221,6 +239,9 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
     this.handleSetControlValue = this.handleSetControlValue.bind(this);
     this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
+    this.handleOnDrillToDetail = this.handleOnDrillToDetail.bind(this);
+    this.handleDrillByClick = this.handleDrillByClick.bind(this);
+    this.handleCellDrill = this.handleCellDrill.bind(this);
     this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
     this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
@@ -232,6 +253,11 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
       onContextMenu: this.state.showContextMenu
         ? this.handleOnContextMenu
         : undefined,
+      onDrillToDetail: this.state.allowDrillToDetail
+        ? this.handleOnDrillToDetail
+        : undefined,
+      onDrillByClick: this.handleDrillByClick,
+      onCellDrill: this.handleCellDrill,
       onError: this.handleRenderFailure,
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
@@ -386,6 +412,21 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
     this.setState({ inContextMenu: true });
   }
 
+  handleDrillByClick(drillBy: Required<ContextMenuFilters>['drillBy']): void {
+    this.contextMenuRef.current?.openDrillBy(drillBy);
+  }
+
+  handleOnDrillToDetail(filters?: BinaryQueryObjectFilterClause[]): void {
+    this.contextMenuRef.current?.openDrillToDetail(filters);
+  }
+
+  handleCellDrill(
+    filters: BinaryQueryObjectFilterClause[],
+    column: string,
+  ): void {
+    this.setState({ cellDrill: { filters, column } });
+  }
+
   handleContextMenuSelected(): void {
     this.setState({ inContextMenu: false });
   }
@@ -401,6 +442,12 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
   // When viz plugins don't handle `contextmenu` event, fallback handler
   // calls `handleOnContextMenu` with no `filters` param.
   onContextMenuFallback(event: MouseEvent<HTMLDivElement>): void {
+    const { formData } = this.props;
+    if (ensureIsArray((formData as any).drill_by_hierarchy).length > 0) {
+      event.preventDefault();   // no browser menu, no Superset menu
+      return;
+    }
+  
     if (!this.state.inContextMenu) {
       event.preventDefault();
       this.handleOnContextMenu(event.clientX, event.clientY);
@@ -520,7 +567,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
 
     return (
       <>
-        {this.state.showContextMenu && (
+        {this.state.allowDrillToDetail && (
           <ChartContextMenu
             ref={this.contextMenuRef}
             id={chartId}
@@ -529,6 +576,24 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
             onClose={this.handleContextMenuClosed}
           />
         )}
+        {this.state.cellDrill &&
+          (() => {
+            const configs = ensureIsArray(
+              (currentFormData as any).drill_detail_cell_configs,
+            );
+            const config = configs.find(
+              (c: any) => c.column === this.state.cellDrill?.column,
+            );
+            return config ? (
+              <CellDrillModal
+                formData={currentFormData as QueryFormData}
+                dataset={datasource as any}
+                config={config}
+                initialFilters={this.state.cellDrill.filters}
+                onHideModal={() => this.setState({ cellDrill: null })}
+              />
+            ) : null;
+          })()}
         <div
           onContextMenu={
             this.state.showContextMenu ? this.onContextMenuFallback : undefined

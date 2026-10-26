@@ -79,19 +79,21 @@ export function formatTooltip(
   xAxisFormatter: NumberFormatter,
   yAxisFormatter: NumberFormatter,
   tooltipSizeFormatter: NumberFormatter,
+  showSizeInTooltip = true,
 ) {
   const title = params.data[4]
     ? `${params.data[4]} (${params.data[3]})`
     : params.data[3];
 
-  return tooltipHtml(
-    [
-      [xAxisLabel, xAxisFormatter(params.data[0])],
-      [yAxisLabel, yAxisFormatter(params.data[1])],
-      [sizeLabel, tooltipSizeFormatter(params.data[2])],
-    ],
-    title,
-  );
+  const rows: string[][] = [
+    [xAxisLabel, xAxisFormatter(params.data[0])],
+    [yAxisLabel, yAxisFormatter(params.data[1])],
+  ];
+  if (showSizeInTooltip) {
+    rows.push([sizeLabel, tooltipSizeFormatter(params.data[2])]);
+  }
+
+  return tooltipHtml(rows, title);
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
@@ -123,6 +125,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     xAxisLabelInterval,
     yAxisLabelRotation,
     tooltipSizeFormat,
+    showSizeInTooltip,
     opacity,
     showLegend,
     legendOrientation,
@@ -248,6 +251,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           xAxisFormatter,
           yAxisFormatter,
           tooltipSizeFormatter,
+          showSizeInTooltip,
         ),
     },
     grid: { ...defaultGrid, ...padding },

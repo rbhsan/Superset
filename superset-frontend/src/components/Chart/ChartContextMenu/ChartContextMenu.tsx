@@ -25,6 +25,7 @@ import {
   useImperativeHandle,
   useMemo,
   useState,
+  useEffect,
 } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -55,6 +56,10 @@ import { getMenuAdjustedY } from '../utils';
 import { DrillBySubmenu } from '../DrillBy/DrillBySubmenu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import {
+  getDrillByHierarchy,
+  getNextDrillColumn,
+} from '../DrillBy/drillByHierarchy';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -81,6 +86,8 @@ export interface ChartContextMenuRef {
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  openDrillToDetail: (filters?: BinaryQueryObjectFilterClause[]) => void;
+  openDrillBy: (drillBy: Required<ContextMenuFilters>['drillBy']) => void;
 }
 
 const ChartContextMenu = (
@@ -156,6 +163,12 @@ const ChartContextMenu = (
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
+
+  // Drill-by on click: the request waits here until the dataset (and
+  // therefore drillable_columns) is available.
+  const [pendingDrillBy, setPendingDrillBy] = useState<
+    Required<ContextMenuFilters>['drillBy'] | null
+  >(null);
 
   const closeContextMenu = useCallback(() => {
     setVisible(false);
@@ -384,6 +397,50 @@ const ChartContextMenu = (
     });
   }
 
+  const openDrillToDetail = useCallback(
+    (drillFilters: BinaryQueryObjectFilterClause[] = []) => {
+      if (!showDrillToDetail) return;
+      setFilters(drillFilters);
+      setDrillModalIsOpen(true);
+    },
+    [showDrillToDetail],
+  );  
+  
+  const openDrillBy = useCallback(
+    (drillBy: Required<ContextMenuFilters>['drillBy']) => {
+      if (!showDrillBy) return;
+      // Stored as the menu's filters so filteredDataset excludes the chart's
+      // groupby columns and DrillByModal receives the same config the menu would.
+      setState({ clientX: 0, clientY: 0, filters: { drillBy } });
+      setPendingDrillBy(drillBy);
+    },
+    [showDrillBy],
+  );
+
+  useEffect(() => {
+    if (!pendingDrillBy || !filteredDataset) return;
+    const column = getNextDrillColumn(
+      ensureIsArray(filteredDataset.drillable_columns),
+      getDrillByHierarchy(formData),
+    );
+    setPendingDrillBy(null);
+    if (!column) return;
+    // Mirrors DrillBySubmenu.handleSelection: inside an existing Drill By
+    // modal (openNewModal === false) the modal appends a level via onSelection;
+    // on the dashboard a new modal is opened.
+    onSelection(column, pendingDrillBy);
+    if (additionalConfig?.drillBy?.openNewModal !== false) {
+      setDrillByColumn(column);
+      setShowDrillByModal(true);
+    }
+  }, [
+    pendingDrillBy,
+    filteredDataset,
+    formData,
+    onSelection,
+    additionalConfig?.drillBy?.openNewModal,
+  ]);
+
   const open = useCallback(
     (clientX: number, clientY: number, filters?: ContextMenuFilters) => {
       const adjustedY = getMenuAdjustedY(clientY, itemsCount);
@@ -406,8 +463,10 @@ const ChartContextMenu = (
     ref,
     () => ({
       open,
+      openDrillToDetail,
+      openDrillBy
     }),
-    [open],
+    [open, openDrillToDetail, openDrillBy],
   );
 
   return ReactDOM.createPortal(

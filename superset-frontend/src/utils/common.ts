@@ -35,7 +35,7 @@ export const FALSE_STRING = 'FALSE';
 export const SHORT_DATE = 'MMM D, YYYY';
 export const SHORT_TIME = 'h:m a';
 
-const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
+const DATETIME_FORMATTER = getTimeFormatter('%d-%m-%Y %H:%M:%S');
 
 export type OptionValue = string | number | boolean | null;
 

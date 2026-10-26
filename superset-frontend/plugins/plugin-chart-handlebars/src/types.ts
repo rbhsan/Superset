@@ -22,6 +22,7 @@ import {
   QueryMode,
   TimeGranularity,
   TimeseriesDataRecord,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 
 export interface HandlebarsStylesProps {
@@ -32,6 +33,11 @@ export interface HandlebarsStylesProps {
 interface HandlebarsCustomizeProps {
   handlebarsTemplate?: string;
   styleTemplate?: string;
+  showDrillLink?: boolean;
+  drillLinkLabel?: string;
+  drillDetailFiltersEnabled?: boolean;
+  drillDetailChartEnabled?: boolean;
+  drillDetailChartType?: string;
 }
 
 export type HandlebarsQueryFormData = QueryFormData &
@@ -59,4 +65,6 @@ export type HandlebarsProps = HandlebarsStylesProps &
     data: TimeseriesDataRecord[];
     // add typing here for the props you pass in from transformProps.ts!
     formData: HandlebarsQueryFormData;
+    onDrillToDetail?: (filters?: BinaryQueryObjectFilterClause[]) => void;
+    onCellDrill?: (filters: BinaryQueryObjectFilterClause[], column: string) => void;
   };

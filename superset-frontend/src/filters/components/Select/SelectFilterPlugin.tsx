@@ -619,6 +619,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                   valArr.every(v =>
                     lockedValues.includes(v as string | number),
                   );
+		console.log({
+		  filter: formData.nativeFilterId,
+		  lockedValues,
+		  selected: valArr,
+		  isFullyLocked,
+		});
                 return (
               <Select
               name={formData.nativeFilterId}

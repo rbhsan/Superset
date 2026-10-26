@@ -115,6 +115,7 @@ import {
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
+import { getEffectiveGroupby } from './seriesSelector';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -214,7 +215,8 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
-  const groupBy = ensureIsArray(groupby);
+  //const groupBy = ensureIsArray(groupby);
+  const groupBy = getEffectiveGroupby({ ...formData, groupby });
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -643,6 +645,7 @@ export default function transformProps(
     setDataMask = () => {},
     setControlValue = () => {},
     onContextMenu,
+    onDrillToDetail,
     onLegendStateChanged,
     onLegendScroll,
   } = hooks;
@@ -1012,6 +1015,7 @@ export default function transformProps(
     width,
     legendData,
     onContextMenu,
+    onDrillToDetail,
     onLegendStateChanged,
     onFocusedSeries,
     xValueFormatter: tooltipFormatter,

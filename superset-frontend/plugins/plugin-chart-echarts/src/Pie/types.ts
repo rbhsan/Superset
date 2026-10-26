@@ -48,6 +48,7 @@ export type EchartsPieFormData = QueryFormData &
     showLabelsThreshold: number;
     roseType: 'radius' | 'area' | null;
     thresholdForOther: number;
+    drillByHierarchy?: string[];
   };
 
 export enum EchartsPieLabelType {

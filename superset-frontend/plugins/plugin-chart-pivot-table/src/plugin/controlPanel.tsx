@@ -24,6 +24,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
+import { seriesSelectorSection } from '../seriesSelectorControls';
 import {
   ensureIsArray,
   isAdhocColumn,
@@ -469,6 +470,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    seriesSelectorSection,
   ],
   formDataOverrides: formData => {
     const groupbyColumns = getStandardizedControls().controls.columns.filter(
